@@ -41,7 +41,7 @@ The project involves an international team across UC Berkeley, Istanbul, Athens,
 
 ## Notebooks
 
-- [Defter Basic Parser](https://colab.research.google.com/drive/1X4VMjOG9fgoIs_qVxofnoZst1AGHx5QP) — Census data parsing and FactGrid property mapping
+- [Defter Basic Parser](https://drive.google.com/file/d/1ylsQ3qhzl30KyDmc1sSN52j0VRg89BQX/view?usp=sharing) — Census data parsing and FactGrid property mapping
 - [Entity Import](https://colab.research.google.com/drive/1ertLES80T8o-AYWcgKl1gl1tjSuWeUGD) — FactGrid entity retrieval and import
 
 ## What I'd Improve
