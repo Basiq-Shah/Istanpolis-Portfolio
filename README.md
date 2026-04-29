@@ -1,52 +1,85 @@
-# Istanpolis Data Engineering Tools
+# Istanpolis — Data Engineering Tools for Historical Research
 
-Python tooling built for the **Istanpolis** research project at UC Berkeley (2021–2024), a collaborative digital humanities initiative documenting the Greek communities of Istanbul from the 19th–20th centuries. The project is led by Professor Christine Philliou (Department of History) in partnership with researchers across UC Berkeley, Koç University, and the University of Crete.
+Python data engineering tooling built for [**İstanΠόλις**](https://www.istanpolis.org/), a UC Berkeley Digital Humanities research project documenting the Greek communities of Istanbul across the 19th–20th centuries. Led by Professor Christine Philliou (Department of History) in collaboration with researchers at Koç University, the University of Crete, and the [FactGrid](https://database.factgrid.de) linked data initiative.
 
-## What I Built
+## Overview
 
-My role on the project was technical: building Python tooling and workflows so the research team — historians, graduate students, and international collaborators — could assemble, parse, clean, and query large semi-structured datasets reliably. Three main deliverables:
+The Istanpolis project digitizes Ottoman-era primary sources — census registers (*nüfus defterleri*), Greek-language newspapers, and archival records — to build structured, queryable datasets that feed into FactGrid, a Wikibase-powered knowledge graph for historical research.
 
-### 1. Ottoman Census Parser (`defter_parser.ipynb`)
+My role was data engineering: building the parsing, extraction, data migration, and data quality tooling that transformed messy, semi-structured historical documents into clean, analysis-ready data. The project involved an international team of historians, graduate students, and archivists with varying technical backgrounds, so all deliverables were built as documented, runnable notebooks with clear outputs.
 
-Parses Ottoman Turkish census registers (*defters*) from Excel spreadsheets into structured, analysis-ready DataFrames. The source data is a 3,100+ row spreadsheet with 23 columns covering household records from 1820s-era Greek communities in Istanbul — names, professions, places of origin, ages, tax status, and more.
+## Tools
 
-The parser handles:
-- Dropping metadata rows and extracting the column-to-FactGrid property mapping from embedded header rows
-- Cleaning unnamed/overflow columns
-- Extracting and normalizing FactGrid property IDs (P-values) for each column to enable linked data upload
-- Data quality checks (null value counts per column, record boundary detection)
-- Connecting to the FactGrid API to resolve property IDs to human-readable labels
+### 1. Greek Newspaper Parser
 
-### 2. Fuzzy Search for Transliteration Matching
+**[`Greek Newspaper Parser.ipynb`](Greek%20Newspaper%20Parser.ipynb)**
 
-Ottoman Turkish names have inconsistent transliterations across sources — student workers' translations often differed by one or two characters from the official ArcGIS/Wikidata translations. I wrote a fuzzy matching algorithm in Python to automate the reconciliation, reducing manual workload by ~60%. Before this tool, each name had to be manually matched to a physical ArcGIS location.
+Parses a `.docx` file containing a catalog of Greek newspapers published in Constantinople into a structured DataFrame. The source document stores each newspaper as a block of paragraphs — title (underlined), followed by key:value fields (Subtitle, Duration, Publisher, Director, Address, Printing house), separated by blank lines.
 
-### 3. FactGrid Entity Import API (`import_entity.ipynb`)
+The parser:
+- Reads the `.docx` using `python-docx` and iterates over paragraphs
+- Detects record boundaries via blank lines to segment individual newspaper entries
+- Extracts key:value pairs using regex, handling records where fields are missing or extra columns appear
+- Builds a pandas DataFrame and exports both unfiltered and trimmed versions to Excel
+- Runs data quality analysis — counts non-null entries per column and identifies overflow columns created by inconsistent source formatting
 
-The team needed to bulk-download and upload datasets from [FactGrid](https://database.factgrid.de), a Wikibase-powered linked data platform for historical research. The existing API integration didn't support the team's query patterns. I rebuilt the integration using the `wikibaseintegrator` Python library to automate entity retrieval for local database keys, improving data consistency and eliminating ~15% of null values in the local dataset.
+### 2. Greek Newspaper Parser & Address Extracter
+
+**[`Greek Newspaper Parser- and Address Extracter.ipynb`](Greek%20Newspaper%20Parser-%20and%20Address%20Extracter.ipynb)**
+
+Extends the newspaper parser with address extraction and geocoding. Many newspaper entries list multiple addresses across their publication history, separated by semicolons within a single field (e.g., different offices for different issue ranges).
+
+The address extracter:
+- Splits multi-address strings by semicolon into separate columns (`Address 1`, `Address 2`, etc.), preserving the association with each newspaper record
+- Exports the expanded address data to a dedicated Excel file
+- Geocodes extracted addresses using `geopandas` to produce coordinates for ArcGIS mapping of newspaper office locations across Istanbul
+
+### 3. Ottoman Census Parser (Defter Parser)
+
+**[`Defter basic parser.ipynb`](https://drive.google.com/file/d/1ylsQ3qhzl30KyDmc1sSN52j0VRg89BQX/view?usp=sharing)** *(hosted on Google Drive)*
+
+Parses Ottoman Turkish census registers (*defters*) from Excel spreadsheets into structured, analysis-ready DataFrames. The source data is a 3,100+ row spreadsheet with 23 columns covering 1820s-era household records — names, professions, places of origin, ages, and tax status.
+
+The parser:
+- Drops metadata rows and extracts the column-to-FactGrid property mapping from embedded header rows
+- Cleans unnamed/overflow columns generated by inconsistent source formatting
+- Extracts and normalizes FactGrid property IDs (P-values) for each column to enable linked data upload
+- Runs data quality validation (null value counts per column, record boundary detection)
+- Connects to the FactGrid API via `wikibaseintegrator` to resolve property IDs to human-readable labels
+
+### 4. FactGrid Entity Import
+
+**[`import_entity.ipynb`]([https://colab.research.google.com/drive/1ertLES80T8o-AYWcgKl1gl1tjSuWeUGD](https://drive.google.com/file/d/1S7lJe2CmVp8_psHvvslppiqdBfMdhRYw/view?usp=sharing))** *(hosted on Google Colab)*
+
+A cross-instance entity migration tool that transfers entities between two Wikibase instances — FactGrid (the public linked data platform) and the team's local Wikibase server (wikibasement.org). The notebook:
+- Authenticates against both Wikibase instances using `wikibaseintegrator`
+- Retrieves a source entity from FactGrid by its Q-identifier (e.g., Q720193 "Ottoman Turkish")
+- Strips the entity's claims to avoid ID conflicts between instances
+- Writes the entity to the destination instance with `as_new=True`, preserving labels, descriptions, and aliases while generating a fresh local ID
+- Includes a custom nested dictionary pretty-printer for inspecting complex Wikibase entity structures
+
+### 5. Fuzzy Search Algorithm
+
+Built a fuzzy matching algorithm in Python to reconcile transliteration variants across Ottoman Turkish, Greek, and modern Turkish place names. Student researchers' manual translations frequently differed by one or two characters from the official ArcGIS/Wikidata entries for the same location. The fuzzy search automated this reconciliation, reducing manual data retrieval workload by approximately 60%. Prior to this tool, each name had to be individually matched to a physical ArcGIS location by hand.
+
+*(Source notebook not included in this repository)*
 
 ## Tech Stack
 
-- **Python** — pandas, numpy, requests, sqlite3
-- **wikibaseintegrator** — Python client for Wikibase/FactGrid API
+- **Python** — pandas, numpy, regex, requests, sqlite3
+- **python-docx** — `.docx` parsing for newspaper catalog records
+- **geopandas** — geocoding extracted addresses for ArcGIS mapping
+- **wikibaseintegrator** — Wikibase/FactGrid API client for entity migration and linked data operations
 - **Google Colab** — collaborative notebook environment
-- **FactGrid** — Wikibase-powered linked data platform
-- **Data formats** — Excel (.xlsx), CSV, JSON (Wikibase API responses)
-
-## Project Context
-
-Istanpolis digitizes early Ottoman census records (*nüfus defterleri*) to build prosopographic profiles of Greek community members — recording names, professions, family relationships, places of origin, and institutional affiliations. The data feeds into FactGrid's linked data graph and supports mapping, demographic analysis, and archival research.
-
-The project involves an international team across UC Berkeley, Istanbul, Athens, and Crete. My tools were used by researchers with varying technical skill levels, so deliverables were provided as documented, runnable Colab notebooks with clear outputs that non-technical collaborators could verify.
-
-## Notebooks
-
-- [Defter Basic Parser](https://drive.google.com/file/d/1ylsQ3qhzl30KyDmc1sSN52j0VRg89BQX/view?usp=sharing) — Census data parsing and FactGrid property mapping
-- [Entity Import](https://colab.research.google.com/drive/1ertLES80T8o-AYWcgKl1gl1tjSuWeUGD) — FactGrid entity retrieval and import
+- **FactGrid** — Wikibase-powered linked data platform for historical research
+- **ArcGIS** — geographic mapping and visualization
+- **Data formats** — Word documents (.docx), Excel (.xlsx), CSV, JSON (Wikibase API)
 
 ## What I'd Improve
 
+- **Consolidate the parsers** into a single configurable pipeline that accepts different source types (newspapers, census registers) via a config file rather than separate notebooks
 - **Add schema validation** with pydantic or pandera to catch data quality issues before FactGrid upload
-- **Automate the full pipeline** with Airflow — from Excel ingestion through parsing, fuzzy matching, and FactGrid upload
-- **Replace the fuzzy search** with a more robust approach using `rapidfuzz` or `jellyfish` for better transliteration matching across Turkish/Greek/Ottoman scripts
+- **Orchestrate with Airflow** — automate the full flow from document ingestion through parsing, geocoding, and FactGrid upload as a DAG
+- **Replace the fuzzy search** with `rapidfuzz` or `jellyfish` for better performance on multilingual transliteration matching
 - **Add unit tests** for the parser's boundary detection and column mapping logic
+- **Generalize entity migration** to support batch import of multiple entities with automatic claim remapping between instances
