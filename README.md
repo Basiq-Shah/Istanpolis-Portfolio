@@ -49,7 +49,7 @@ The parser:
 
 ### 4. FactGrid Entity Import
 
-**[`import_entity.ipynb`]([https://colab.research.google.com/drive/1ertLES80T8o-AYWcgKl1gl1tjSuWeUGD](https://drive.google.com/file/d/1S7lJe2CmVp8_psHvvslppiqdBfMdhRYw/view?usp=sharing))** *(hosted on Google Colab)*
+**[`import_entity.ipynb`](https://drive.google.com/file/d/1S7lJe2CmVp8_psHvvslppiqdBfMdhRYw/view?usp=sharing)** *(hosted on Google Colab)*
 
 A cross-instance entity migration tool that transfers entities between two Wikibase instances — FactGrid (the public linked data platform) and the team's local Wikibase server (wikibasement.org). The notebook:
 - Authenticates against both Wikibase instances using `wikibaseintegrator`
